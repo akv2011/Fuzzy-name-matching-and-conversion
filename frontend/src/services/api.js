@@ -1,13 +1,16 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:5000"; // Update with your backend URL
+const BASE_URL = "http://localhost:5000";
 
 export const searchName = async (name) => {
   try {
     const response = await axios.post(`${BASE_URL}/search`, { name });
-    return response.data.results;
+    console.log("Full API Response:", response); // Debugging log
+    return response.data.results || []; // Ensure results is an array
   } catch (error) {
-    console.error("Error searching for the name:", error);
-    throw error;
+    console.error("API Error:", error.response?.data || error.message);
+    throw new Error(
+      error.response?.data?.message || "An error occurred while fetching data."
+    );
   }
 };

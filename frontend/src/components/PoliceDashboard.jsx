@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { searchName } from "../services/api";
-import Fuse from "fuse.js";
 import { Card, CardHeader, CardContent } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
@@ -16,8 +15,6 @@ import {
 const PoliceDashboard = () => {
   const [inputName, setInputName] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [records, setRecords] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState({
@@ -25,6 +22,7 @@ const PoliceDashboard = () => {
     location: "All Stations",
     caseType: "All Types",
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   const RESULTS_PER_PAGE = 5;
 
@@ -44,6 +42,7 @@ const PoliceDashboard = () => {
 
     try {
       const results = await searchName(inputName);
+      console.log("API Results:", results); // Debugging log
 
       const filteredResults = results.filter((record) => {
         const matchesLocation =
@@ -56,10 +55,12 @@ const PoliceDashboard = () => {
         return matchesLocation && matchesCaseType;
       });
 
+      console.log("Filtered Results:", filteredResults); // Debugging log
       setSearchResults(filteredResults);
       setCurrentPage(1);
     } catch (error) {
-      console.error("Search failed:", error);
+      console.error("Search Error:", error.message);
+      alert("Failed to fetch search results. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -72,10 +73,20 @@ const PoliceDashboard = () => {
     }));
   };
 
+  const resetFilters = () => {
+    setActiveFilters({
+      timeframe: "1 Year",
+      location: "All Stations",
+      caseType: "All Types",
+    });
+  };
+
   const paginatedResults = searchResults.slice(
     (currentPage - 1) * RESULTS_PER_PAGE,
     currentPage * RESULTS_PER_PAGE
   );
+
+  const totalPages = Math.ceil(searchResults.length / RESULTS_PER_PAGE) || 1;
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -124,7 +135,14 @@ const PoliceDashboard = () => {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-6"
                 disabled={isLoading}
               >
-                {isLoading ? "Searching..." : "Search"}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-white rounded-full"></div>
+                    Searching...
+                  </div>
+                ) : (
+                  "Search"
+                )}
               </Button>
             </div>
           </CardHeader>
@@ -162,6 +180,12 @@ const PoliceDashboard = () => {
                   </div>
                 ))}
               </div>
+              <Button
+                onClick={resetFilters}
+                className="bg-red-500 text-white mt-4 hover:bg-red-600"
+              >
+                Reset Filters
+              </Button>
             </CardContent>
           )}
         </Card>
@@ -211,18 +235,10 @@ const PoliceDashboard = () => {
                             Age: {result.age}
                           </div>
                         </td>
-                        <td className="p-4 text-indigo-800">
-                          {result.caseType}
-                        </td>
-                        <td className="p-4 text-indigo-800">
-                          {result.caseFIR}
-                        </td>
-                        <td className="p-4 text-indigo-800">
-                          {result.location}
-                        </td>
-                        <td className="p-4 text-indigo-800">
-                          {result.confidence}%
-                        </td>
+                        <td className="p-4">{result.caseType}</td>
+                        <td className="p-4">{result.fir}</td>
+                        <td className="p-4">{result.location}</td>
+                        <td className="p-4">{result.confidence}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -231,13 +247,38 @@ const PoliceDashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="w-full mt-8 flex justify-center items-center">
+          <div className="w-full mt-8 flex flex-col justify-center items-center">
             <AlertTriangle className="h-12 w-12 text-indigo-600" />
-            <span className="ml-4 text-lg font-semibold text-indigo-900">
-              No matching records found.
+            <span className="ml-4 text-lg font-semibold text-indigo-900 text-center">
+              {isLoading
+                ? "Loading..."
+                : inputName
+                ? "No results found. Try refining your filters or using a different name."
+                : "Please enter a name to begin your search."}
             </span>
           </div>
         )}
+
+        {/* Pagination */}
+        <div className="flex justify-center items-center mt-4">
+          <Button
+            disabled={currentPage === 1 || paginatedResults.length === 0}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            Previous
+          </Button>
+          <span className="mx-4 text-indigo-800">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            disabled={
+              currentPage === totalPages || paginatedResults.length === 0
+            }
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );
