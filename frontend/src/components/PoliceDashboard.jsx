@@ -235,7 +235,7 @@ const PoliceDashboard = () => {
                             Age: {result.age}
                           </div>
                         </td>
-                        <td className="p-4">{result.caseType}</td>
+                        <td className="p-4">{result.case_type}</td>
                         <td className="p-4">{result.fir}</td>
                         <td className="p-4">{result.location}</td>
                         <td className="p-4">{result.confidence}%</td>
