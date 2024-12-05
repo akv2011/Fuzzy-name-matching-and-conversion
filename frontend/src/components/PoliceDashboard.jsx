@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { searchName } from "../services/api";
-import { Card, CardHeader, CardContent } from "./ui/Card";
+import { searchName, suggestName } from "../services/api";
+import { Card, CardHeader } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
+import VoiceSearchButton from "./ui/VoiceSearchButton"; // Import the Voice Search Button
 import {
   Search,
   Filter,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
-  Database,
 } from "lucide-react";
+import ViewDetailsModal from "./ui/ViewDetailsModal"; // Import the modal component
 
 const PoliceDashboard = () => {
   const [inputName, setInputName] = useState("");
@@ -23,12 +23,16 @@ const PoliceDashboard = () => {
     caseType: "All Types",
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [nameSuggestions, setNameSuggestions] = useState([]);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
+  const [selectedRecord, setSelectedRecord] = useState(null); // State to store selected record
 
   const RESULTS_PER_PAGE = 5;
 
   const filterOptions = {
     timeframes: ["1 Month", "3 Months", "1 Year", "5 Years"],
-    locations: ["All Stations", "Delhi", "Mumbai", "Bangalore", "Kolkata"],
+    locations: ["All Stations", "Indore", "Bhopal", "Gwalior", "Sagar", "Dewas", "Ujjain", "Jabalpur", "Rewa"],
     caseTypes: ["All Types", "Criminal", "Witness", "Suspect", "Victim"],
   };
 
@@ -42,8 +46,6 @@ const PoliceDashboard = () => {
 
     try {
       const results = await searchName(inputName);
-      console.log("API Results:", results); // Debugging log
-
       const filteredResults = results.filter((record) => {
         const matchesLocation =
           activeFilters.location === "All Stations" ||
@@ -55,7 +57,6 @@ const PoliceDashboard = () => {
         return matchesLocation && matchesCaseType;
       });
 
-      console.log("Filtered Results:", filteredResults); // Debugging log
       setSearchResults(filteredResults);
       setCurrentPage(1);
     } catch (error) {
@@ -66,19 +67,51 @@ const PoliceDashboard = () => {
     }
   };
 
-  const toggleFilter = (filterType, value) => {
-    setActiveFilters((prevFilters) => ({
-      ...prevFilters,
-      [filterType]: value,
-    }));
+  const handleInputChange = async (e) => {
+    const query = e.target.value;
+    setInputName(query);
+
+    if (query.length > 2) {
+      setIsSuggestionsLoading(true);
+      try {
+        const suggestions = await suggestName(query);
+        setNameSuggestions(suggestions);
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      } finally {
+        setIsSuggestionsLoading(false);
+      }
+    } else {
+      setNameSuggestions([]);
+    }
   };
 
-  const resetFilters = () => {
-    setActiveFilters({
-      timeframe: "1 Year",
-      location: "All Stations",
-      caseType: "All Types",
-    });
+  const handleVoiceInput = async (transcript) => {
+    setInputName(transcript); // Update input field with transcribed text
+    try {
+      setIsLoading(true);
+      const results = await searchName(transcript); // Fetch results based on voice input
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Voice Search Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setInputName(suggestion);
+    setNameSuggestions([]);
+  };
+
+  const handleViewDetails = (record) => {
+    setSelectedRecord(record);
+    setIsModalOpen(true); // Open the modal when "View" is clicked
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false); // Close the modal
+    setSelectedRecord(null); // Clear the selected record
   };
 
   const paginatedResults = searchResults.slice(
@@ -126,7 +159,7 @@ const PoliceDashboard = () => {
               <Input
                 placeholder="Enter name to search..."
                 value={inputName}
-                onChange={(e) => setInputName(e.target.value)}
+                onChange={handleInputChange}
                 className="flex-1 text-lg"
                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
               />
@@ -135,153 +168,102 @@ const PoliceDashboard = () => {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-6"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-white rounded-full"></div>
-                    Searching...
-                  </div>
-                ) : (
-                  "Search"
-                )}
+                {isLoading ? "Searching..." : "Search"}
               </Button>
+              <VoiceSearchButton onVoiceInput={handleVoiceInput} /> {/* Add Voice Search Button */}
             </div>
-          </CardHeader>
 
-          {/* Filters */}
-          {showFilters && (
-            <CardContent className="border-t border-indigo-100">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
-                {Object.entries(filterOptions).map(([filterType, options]) => (
-                  <div key={filterType} className="space-y-3">
-                    <label className="block text-sm font-semibold text-indigo-900 uppercase tracking-wide">
-                      {filterType}
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {options.map((option) => (
-                        <Button
-                          key={option}
-                          variant={
-                            activeFilters[filterType] === option
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          className={`w-full ${
-                            activeFilters[filterType] === option
-                              ? "bg-indigo-600"
-                              : "hover:bg-indigo-50"
-                          }`}
-                          onClick={() => toggleFilter(filterType, option)}
-                        >
-                          {option}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button
-                onClick={resetFilters}
-                className="bg-red-500 text-white mt-4 hover:bg-red-600"
-              >
-                Reset Filters
-              </Button>
-            </CardContent>
-          )}
+            {/* Suggestions List */}
+            {inputName && (
+              <ul className="bg-white shadow-lg mt-2 rounded-lg max-h-48 overflow-y-auto">
+                {isSuggestionsLoading ? (
+                  <li className="p-2 text-gray-500">Loading...</li>
+                ) : (
+                  nameSuggestions.map((suggestion, index) => (
+                    <li
+                      key={index}
+                      className="p-2 hover:bg-indigo-50 cursor-pointer"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      {suggestion}
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </CardHeader>
         </Card>
 
         {/* Results */}
-        {searchResults.length > 0 ? (
-          <Card className="w-full mt-8 shadow-xl border border-indigo-100">
-            <CardHeader className="flex items-center border-b border-indigo-100 bg-indigo-50/50">
-              <Database className="mr-3 text-indigo-600" />
-              <span className="text-xl font-semibold text-indigo-900">
-                Matching Records ({searchResults.length})
-              </span>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-indigo-50/50">
-                      <th className="p-4 text-left text-indigo-900 font-semibold">
-                        Name
-                      </th>
-                      <th className="p-4 text-left text-indigo-900 font-semibold">
-                        Case Type
-                      </th>
-                      <th className="p-4 text-left text-indigo-900 font-semibold">
-                        FIR
-                      </th>
-                      <th className="p-4 text-left text-indigo-900 font-semibold">
-                        Location
-                      </th>
-                      <th className="p-4 text-left text-indigo-900 font-semibold">
-                        Confidence
-                      </th>
+        {searchResults.length > 0 && (
+          <div className="mt-6 w-full space-y-4">
+            <div className="overflow-x-auto rounded-lg border border-indigo-200">
+              <table className="min-w-full table-auto">
+                <thead className="bg-indigo-50 text-indigo-700">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Name</th>
+                    <th className="px-4 py-2 text-left">Age</th>
+                    <th className="px-4 py-2 text-left">Case Type</th>
+                    <th className="px-4 py-2 text-left">Location</th>
+                    <th className="px-4 py-2 text-left">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedResults.map((record, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="px-4 py-2">{record.name}</td>
+                      <td className="px-4 py-2">{record.age}</td>
+                      <td className="px-4 py-2">{record.caseType}</td>
+                      <td className="px-4 py-2">{record.location}</td>
+                      <td className="px-4 py-2">
+                        <Button
+                          onClick={() => handleViewDetails(record)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                          View
+                        </Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedResults.map((result, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-indigo-100 hover:bg-indigo-50/30 transition-colors"
-                      >
-                        <td className="p-4">
-                          <div className="font-semibold text-indigo-900">
-                            {result.name}
-                          </div>
-                          <div className="text-sm text-indigo-600">
-                            Age: {result.age}
-                          </div>
-                        </td>
-                        <td className="p-4">{result.case_type}</td>
-                        <td className="p-4">{result.fir}</td>
-                        <td className="p-4">{result.location}</td>
-                        <td className="p-4">{result.confidence}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="w-full mt-8 flex flex-col justify-center items-center">
-            <AlertTriangle className="h-12 w-12 text-indigo-600" />
-            <span className="ml-4 text-lg font-semibold text-indigo-900 text-center">
-              {isLoading
-                ? "Loading..."
-                : inputName
-                ? "No results found. Try refining your filters or using a different name."
-                : "Please enter a name to begin your search."}
-            </span>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center">
+              <Button
+                className="px-4 py-2"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-lg">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                className="px-4 py-2"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Pagination */}
-        <div className="flex justify-center items-center mt-4">
-          <Button
-            disabled={currentPage === 1 || paginatedResults.length === 0}
-            onClick={() => setCurrentPage(currentPage - 1)}
-          >
-            Previous
-          </Button>
-          <span className="mx-4 text-indigo-800">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            disabled={
-              currentPage === totalPages || paginatedResults.length === 0
-            }
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            Next
-          </Button>
-        </div>
+        {/* Modal */}
+        {isModalOpen && (
+          <ViewDetailsModal
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            record={selectedRecord}
+          />
+        )}
       </div>
     </div>
   );
 };
 
 export default PoliceDashboard;
+  
