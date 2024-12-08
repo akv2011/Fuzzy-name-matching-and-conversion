@@ -1,6 +1,8 @@
-Flask==3.1.0
-Flask-Cors==5.0.0
+Flask==2.3.3
+flask-cors==3.1.1
+pandas==1.5.3
+sqlalchemy==2.0.21
+psycopg2-binary==2.9.7
 googletrans==4.0.0-rc1
-pandas==2.2.3
-rapidfuzz==3.10.1
-SQLAlchemy==2.0.20
+rapidfuzz==3.1.0
+pyphonetics==0.7.2

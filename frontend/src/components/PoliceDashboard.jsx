@@ -5,7 +5,6 @@ import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
 import VoiceSearchButton from "./ui/VoiceSearchButton"; // Import the Voice Search Button
 import {
-  Search,
   Filter,
   ChevronDown,
   ChevronUp,
@@ -18,7 +17,6 @@ const PoliceDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState({
-    timeframe: "1 Year",
     location: "All Stations",
     caseType: "All Types",
   });
@@ -31,7 +29,6 @@ const PoliceDashboard = () => {
   const RESULTS_PER_PAGE = 5;
 
   const filterOptions = {
-    timeframes: ["1 Month", "3 Months", "1 Year", "5 Years"],
     locations: ["All Stations", "Indore", "Bhopal", "Gwalior", "Sagar", "Dewas", "Ujjain", "Jabalpur", "Rewa"],
     caseTypes: ["All Types", "Criminal", "Witness", "Suspect", "Victim"],
   };
@@ -105,13 +102,20 @@ const PoliceDashboard = () => {
   };
 
   const handleViewDetails = (record) => {
-    setSelectedRecord(record);
-    setIsModalOpen(true); // Open the modal when "View" is clicked
+    setSelectedRecord(record); // Set the selected record
+    setIsModalOpen(true); // Open the modal
   };
 
   const closeModal = () => {
     setIsModalOpen(false); // Close the modal
     setSelectedRecord(null); // Clear the selected record
+  };
+
+  const handleFilterChange = (type, value) => {
+    setActiveFilters((prev) => ({
+      ...prev,
+      [type]: value,
+    }));
   };
 
   const paginatedResults = searchResults.slice(
@@ -155,6 +159,41 @@ const PoliceDashboard = () => {
                 )}
               </Button>
             </div>
+
+            {/* Filter Options */}
+            {showFilters && (
+              <div className="mt-4 space-y-4 bg-indigo-50 p-4 rounded-lg shadow">
+                <div>
+                  <label className="font-medium text-indigo-800">Location:</label>
+                  <select
+                    value={activeFilters.location}
+                    onChange={(e) => handleFilterChange("location", e.target.value)}
+                    className="ml-2 px-3 py-2 border rounded"
+                  >
+                    {filterOptions.locations.map((option, idx) => (
+                      <option key={idx} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-medium text-indigo-800">Case Type:</label>
+                  <select
+                    value={activeFilters.caseType}
+                    onChange={(e) => handleFilterChange("caseType", e.target.value)}
+                    className="ml-2 px-3 py-2 border rounded"
+                  >
+                    {filterOptions.caseTypes.map((option, idx) => (
+                      <option key={idx} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 w-full">
               <Input
                 placeholder="Enter name to search..."
@@ -198,29 +237,35 @@ const PoliceDashboard = () => {
         {searchResults.length > 0 && (
           <div className="mt-6 w-full space-y-4">
             <div className="overflow-x-auto rounded-lg border border-indigo-200">
-              <table className="min-w-full table-auto">
-                <thead className="bg-indigo-50 text-indigo-700">
+              <table className="min-w-full text-left">
+                <thead className="bg-indigo-100">
                   <tr>
-                    <th className="px-4 py-2 text-left">Name</th>
-                    <th className="px-4 py-2 text-left">Age</th>
-                    <th className="px-4 py-2 text-left">Case Type</th>
-                    <th className="px-4 py-2 text-left">Location</th>
-                    <th className="px-4 py-2 text-left">Action</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Name</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Age</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Location</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Case Type</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Confidence Score</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedResults.map((record, index) => (
-                    <tr key={index} className="border-b">
+                  {paginatedResults.map((record, idx) => (
+                    <tr key={idx} className="hover:bg-indigo-50">
                       <td className="px-4 py-2">{record.name}</td>
                       <td className="px-4 py-2">{record.age}</td>
-                      <td className="px-4 py-2">{record.caseType}</td>
                       <td className="px-4 py-2">{record.location}</td>
+                      <td className="px-4 py-2">{record.caseType}</td>
+                      <td className="px-4 py-2">
+                        {record.confidence !== undefined && record.confidence !== null
+                          ? record.confidence.toFixed(2)
+                          : "N/A"}
+                      </td>
                       <td className="px-4 py-2">
                         <Button
                           onClick={() => handleViewDetails(record)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white"
                         >
-                          View
+                          View Details
                         </Button>
                       </td>
                     </tr>
@@ -228,22 +273,18 @@ const PoliceDashboard = () => {
                 </tbody>
               </table>
             </div>
-
-            {/* Pagination */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mt-4">
               <Button
-                className="px-4 py-2"
-                onClick={() => setCurrentPage(currentPage - 1)}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
               >
                 Previous
               </Button>
-              <span className="text-lg">
+              <span>
                 Page {currentPage} of {totalPages}
               </span>
               <Button
-                className="px-4 py-2"
-                onClick={() => setCurrentPage(currentPage + 1)}
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
               >
                 Next
@@ -252,12 +293,11 @@ const PoliceDashboard = () => {
           </div>
         )}
 
-        {/* Modal */}
-        {isModalOpen && (
+        {/* Modal for Viewing Details */}
+        {isModalOpen && selectedRecord && (
           <ViewDetailsModal
-            isOpen={isModalOpen}
-            onClose={closeModal}
             record={selectedRecord}
+            onClose={closeModal}
           />
         )}
       </div>
@@ -266,4 +306,3 @@ const PoliceDashboard = () => {
 };
 
 export default PoliceDashboard;
-  
