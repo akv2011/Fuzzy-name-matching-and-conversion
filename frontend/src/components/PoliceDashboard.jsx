@@ -10,6 +10,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import ViewDetailsModal from "./ui/ViewDetailsModal"; // Import the modal component
+import leftLogo from "/home/harisudhan/Documents/new fuzzy/fuzzy-name-matching-system/frontend/src/components/assets/mp logo.png"; // Import the left logo image
+import rightLogo from "/home/harisudhan/Documents/new fuzzy/fuzzy-name-matching-system/frontend/src/components/assets/mp police logo.png"; // Import the right logo image
 
 const PoliceDashboard = () => {
   const [inputName, setInputName] = useState("");
@@ -127,17 +129,27 @@ const PoliceDashboard = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <div className="w-full max-w-7xl px-4 py-8">
-        {/* Header */}
-        <header className="text-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-xl shadow-lg mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Integrated Name Matching System
-          </h1>
-          <p className="text-indigo-200 mt-2">
-            Enhanced Fuzzy Search & Cross-Referencing
+      {/* Banner Section */}
+      <div className="relative w-full bg-gradient-to-r from-indigo-600 to-purple-600 h-36 flex items-center justify-between px-8 shadow-lg rounded-b-lg">
+        <img
+          src={leftLogo} // Use imported left logo image
+          alt="Left Logo"
+          className="h-16 w-auto"
+        />
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-white">MPPDS</h1>
+          <p className="text-lg text-indigo-200 mt-1">
+            The Integrated Fuzzy Name Matching System
           </p>
-        </header>
+        </div>
+        <img
+          src={rightLogo} // Use imported right logo image
+          alt="Right Logo"
+          className="h-16 w-auto"
+        />
+      </div>
 
+      <div className="w-full max-w-7xl px-4 py-8">
         {/* Search Section */}
         <Card className="w-full shadow-xl border border-indigo-100">
           <CardHeader className="space-y-4">
@@ -236,7 +248,7 @@ const PoliceDashboard = () => {
         {/* Results */}
         {searchResults.length > 0 && (
           <div className="mt-6 w-full space-y-4">
-            <div className="overflow-x-auto rounded-lg border border-indigo-200">
+            <div className="bg-white shadow-md p-4 rounded-lg">
               <table className="min-w-full text-left">
                 <thead className="bg-indigo-100">
                   <tr>
@@ -296,6 +308,7 @@ const PoliceDashboard = () => {
         {/* Modal for Viewing Details */}
         {isModalOpen && selectedRecord && (
           <ViewDetailsModal
+            isOpen={isModalOpen} // Pass isOpen prop
             record={selectedRecord}
             onClose={closeModal}
           />

@@ -5,6 +5,79 @@ const BASE_URL = "http://localhost:5000";
 // Function to search for a name and handle API request
 export const searchName = async (name) => {
   try {
+    const response = await axios.post(`${BASE_URL}/search`, { name });
+    console.log("Full API Response:", response);
+    return response.data.results || [];
+  } catch (error) {
+    if (error.response) {
+      console.error("API Response Error:", error.response);
+      console.error("Error Data:", error.response.data);
+      console.error("Error Status:", error.response.status);
+      console.error("Error Headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("API Request Error:", error.request);
+    } else {
+      console.error("Error:", error.message);
+    }
+    throw new Error(error.response?.data?.message || "An error occurred while fetching data.");
+  }
+};
+
+export const suggestName = async (name) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/suggest`, {
+      params: { name },
+    });
+    console.log("Suggestion API Response:", response);
+    if (response.data.suggestions && Array.isArray(response.data.suggestions)) {
+      return response.data.suggestions.map(item => item.name);
+    }
+    return [];
+  } catch (error) {
+    if (error.response) {
+      console.error("API Response Error:", error.response);
+      console.error("Error Data:", error.response.data);
+      console.error("Error Status:", error.response.status);
+      console.error("Error Headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("API Request Error:", error.request);
+    } else {
+      console.error("Error:", error.message);
+    }
+    throw new Error(error.response?.data?.message || "An error occurred while fetching suggestions.");
+  }
+};
+
+// Function to add no match data to the backend
+export const addNoMatchData = async (data) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/add-no-match`, data);
+    console.log("Add No Match Data API Response:", response);
+    return response.data; // Return the response data to confirm successful submission
+  } catch (error) {
+    if (error.response) {
+      console.error("API Response Error:", error.response);
+      console.error("Error Data:", error.response.data);
+      console.error("Error Status:", error.response.status);
+      console.error("Error Headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("API Request Error:", error.request);
+    } else {
+      console.error("Error:", error.message);
+    }
+    throw new Error(error.response?.data?.message || "An error occurred while adding no match data.");
+  }
+};
+
+
+/*
+import axios from "axios";
+
+const BASE_URL = "http://localhost:5000";
+
+// Function to search for a name and handle API request
+export const searchName = async (name) => {
+  try {
     // Making the POST request to the Flask backend with the search term
     const response = await axios.post(`${BASE_URL}/search`, { name });
 
@@ -67,8 +140,7 @@ export const suggestName = async (name) => {
     throw new Error(error.response?.data?.message || "An error occurred while fetching suggestions.");
   }
 };
-
-
+*/
 
 /*
 import axios from "axios";
