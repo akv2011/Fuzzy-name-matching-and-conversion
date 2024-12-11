@@ -1,17 +1,17 @@
 import React, { useState } from "react";
-import { searchName, suggestName } from "../services/api";
+import { searchName, suggestName, addNewRecord } from "../services/api";
 import { Card, CardHeader } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
-import VoiceSearchButton from "./ui/VoiceSearchButton"; // Import the Voice Search Button
+import VoiceSearchButton from "./ui/VoiceSearchButton";
 import {
   Filter,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import ViewDetailsModal from "./ui/ViewDetailsModal"; // Import the modal component
-import leftLogo from "/home/harisudhan/Documents/new fuzzy/fuzzy-name-matching-system/frontend/src/components/assets/mp logo.png"; // Import the left logo image
-import rightLogo from "/home/harisudhan/Documents/new fuzzy/fuzzy-name-matching-system/frontend/src/components/assets/mp police logo.png"; // Import the right logo image
+import ViewDetailsModal from "./ui/ViewDetailsModal";
+import leftLogo from "/home/harisudhan/Documents/new fuzzy/fuzzy-name-matching-system/frontend/src/components/assets/mp logo.png";
+import rightLogo from "/home/harisudhan/Documents/new fuzzy/fuzzy-name-matching-system/frontend/src/components/assets/mp police logo.png";
 
 const PoliceDashboard = () => {
   const [inputName, setInputName] = useState("");
@@ -25,8 +25,16 @@ const PoliceDashboard = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [nameSuggestions, setNameSuggestions] = useState([]);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
-  const [selectedRecord, setSelectedRecord] = useState(null); // State to store selected record
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newRecord, setNewRecord] = useState({
+    name: "",
+    age: "",
+    location: "",
+    caseType: "",
+    confidence: "",
+  });
 
   const RESULTS_PER_PAGE = 5;
 
@@ -85,7 +93,7 @@ const PoliceDashboard = () => {
     }
   };
 
-  const handleVoiceInput = async (transcript) => {
+    const handleVoiceInput = async (transcript) => {
     setInputName(transcript); // Update input field with transcribed text
     try {
       setIsLoading(true);
@@ -103,14 +111,33 @@ const PoliceDashboard = () => {
     setNameSuggestions([]);
   };
 
+
+  const handleAddRecord = async () => {
+    if (!newRecord.name || !newRecord.age || !newRecord.location || !newRecord.caseType) {
+      alert("Please fill out all required fields.");
+      return;
+    }
+
+    try {
+      const addedRecord = await addNewRecord(newRecord);
+      setSearchResults((prev) => [addedRecord, ...prev]);
+      alert("Record added successfully.");
+      setShowAddForm(false);
+      setNewRecord({ name: "", age: "", location: "", caseType: "", confidence: "" });
+    } catch (error) {
+      console.error("Error adding new record:", error);
+      alert("Failed to add record. Please try again later.");
+    }
+  };
+
   const handleViewDetails = (record) => {
-    setSelectedRecord(record); // Set the selected record
-    setIsModalOpen(true); // Open the modal
+    setSelectedRecord(record);
+    setIsModalOpen(true);
   };
 
   const closeModal = () => {
-    setIsModalOpen(false); // Close the modal
-    setSelectedRecord(null); // Clear the selected record
+    setIsModalOpen(false);
+    setSelectedRecord(null);
   };
 
   const handleFilterChange = (type, value) => {
@@ -131,22 +158,14 @@ const PoliceDashboard = () => {
     <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Banner Section */}
       <div className="relative w-full bg-gradient-to-r from-indigo-600 to-purple-600 h-36 flex items-center justify-between px-8 shadow-lg rounded-b-lg">
-        <img
-          src={leftLogo} // Use imported left logo image
-          alt="Left Logo"
-          className="h-16 w-auto"
-        />
+        <img src={leftLogo} alt="Left Logo" className="h-16 w-auto" />
         <div className="text-center">
           <h1 className="text-4xl font-bold text-white">MPPDS</h1>
           <p className="text-lg text-indigo-200 mt-1">
             The Integrated Fuzzy Name Matching System
           </p>
         </div>
-        <img
-          src={rightLogo} // Use imported right logo image
-          alt="Right Logo"
-          className="h-16 w-auto"
-        />
+        <img src={rightLogo} alt="Right Logo" className="h-16 w-auto" />
       </div>
 
       <div className="w-full max-w-7xl px-4 py-8">
@@ -221,10 +240,9 @@ const PoliceDashboard = () => {
               >
                 {isLoading ? "Searching..." : "Search"}
               </Button>
-              <VoiceSearchButton onVoiceInput={handleVoiceInput} /> {/* Add Voice Search Button */}
+              <VoiceSearchButton onVoiceInput={handleVoiceInput} />
             </div>
-
-            {/* Suggestions List */}
+               {/* Suggestions List */}
             {inputName && (
               <ul className="bg-white shadow-lg mt-2 rounded-lg max-h-48 overflow-y-auto">
                 {isSuggestionsLoading ? (
@@ -244,6 +262,59 @@ const PoliceDashboard = () => {
             )}
           </CardHeader>
         </Card>
+
+        {/* Add Record Form Toggle */}
+        <div className="mt-4">
+          <Button onClick={() => setShowAddForm(!showAddForm)} className="bg-green-500 text-white">
+            {showAddForm ? "Cancel" : "Add New Record"}
+          </Button>
+        </div>
+
+        {/* Add Record Form */}
+        {showAddForm && (
+          <Card className="mt-4 w-full shadow-xl border border-green-200">
+            <CardHeader className="space-y-4">
+              <h2 className="text-xl font-bold text-green-900">Add New Record</h2>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Name"
+                  value={newRecord.name}
+                  onChange={(e) => setNewRecord({ ...newRecord, name: e.target.value })}
+                />
+                <Input
+                  placeholder="Age"
+                  value={newRecord.age}
+                  onChange={(e) => setNewRecord({ ...newRecord, age: e.target.value })}
+                />
+                <Input
+                  placeholder="Location"
+                  value={newRecord.location}
+                  onChange={(e) => setNewRecord({ ...newRecord, location: e.target.value })}
+                />
+                <select
+                  value={newRecord.caseType}
+                  onChange={(e) => setNewRecord({ ...newRecord, caseType: e.target.value })}
+                  className="px-3 py-2 border rounded"
+                >
+                  <option value="">Select Case Type</option>
+                  {filterOptions.caseTypes.map((option, idx) => (
+                    <option key={idx} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  placeholder="Confidence Score (Optional)"
+                  value={newRecord.confidence}
+                  onChange={(e) => setNewRecord({ ...newRecord, confidence: e.target.value })}
+                />
+              </div>
+              <Button onClick={handleAddRecord} className="bg-green-600 text-white mt-4">
+                Add Record
+              </Button>
+            </CardHeader>
+          </Card>
+        )}
 
         {/* Results */}
         {searchResults.length > 0 && (
@@ -308,7 +379,7 @@ const PoliceDashboard = () => {
         {/* Modal for Viewing Details */}
         {isModalOpen && selectedRecord && (
           <ViewDetailsModal
-            isOpen={isModalOpen} // Pass isOpen prop
+            isOpen={isModalOpen}
             record={selectedRecord}
             onClose={closeModal}
           />
