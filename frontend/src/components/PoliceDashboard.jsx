@@ -21,6 +21,7 @@ const PoliceDashboard = () => {
   const [activeFilters, setActiveFilters] = useState({
     location: "All Stations",
     caseType: "All Types",
+    gender: "All Genders",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [nameSuggestions, setNameSuggestions] = useState([]);
@@ -33,6 +34,7 @@ const PoliceDashboard = () => {
     age: "",
     location: "",
     caseType: "",
+    gender: "",
     confidence: "",
   });
 
@@ -41,37 +43,53 @@ const PoliceDashboard = () => {
   const filterOptions = {
     locations: ["All Stations", "Indore", "Bhopal", "Gwalior", "Sagar", "Dewas", "Ujjain", "Jabalpur", "Rewa"],
     caseTypes: ["All Types", "Criminal", "Witness", "Suspect", "Victim"],
+    genders: [
+        { value: "All Genders", label: "All Genders"},
+        { value: "0", label: "Male" },
+        { value: "1", label: "Female" },
+         { value: "2", label: "Other" },
+    ],
+     addFormGenders : [
+        { value: "0", label: "Male" },
+        { value: "1", label: "Female" },
+         { value: "2", label: "Other" },
+    ]
   };
 
   const handleSearch = async () => {
-    if (!inputName.trim()) {
-      alert("Please enter a name to search.");
-      return;
-    }
+      if (!inputName.trim()) {
+          alert("Please enter a name to search.");
+          return;
+      }
 
-    setIsLoading(true);
+      setIsLoading(true);
 
-    try {
-      const results = await searchName(inputName);
-      const filteredResults = results.filter((record) => {
-        const matchesLocation =
-          activeFilters.location === "All Stations" ||
-          record.location.includes(activeFilters.location);
-        const matchesCaseType =
-          activeFilters.caseType === "All Types" ||
-          record.caseType === activeFilters.caseType;
+      try {
+          const results = await searchName(inputName);
+          const filteredResults = results.filter((record) => {
+              const matchesLocation =
+                  activeFilters.location === "All Stations" ||
+                  record.location.includes(activeFilters.location);
+              const matchesCaseType =
+                  activeFilters.caseType === "All Types" ||
+                  record.caseType === activeFilters.caseType;
+              const matchesGender =
+                  activeFilters.gender === "All Genders" ||
+                   (activeFilters.gender !== "All Genders" && String(record.gender) === activeFilters.gender)
 
-        return matchesLocation && matchesCaseType;
-      });
 
-      setSearchResults(filteredResults);
-      setCurrentPage(1);
-    } catch (error) {
-      console.error("Search Error:", error.message);
-      alert("Failed to fetch search results. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
+
+              return matchesLocation && matchesCaseType && matchesGender;
+          });
+
+          setSearchResults(filteredResults);
+          setCurrentPage(1);
+      } catch (error) {
+          console.error("Search Error:", error.message);
+          alert("Failed to fetch search results. Please try again later.");
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   const handleInputChange = async (e) => {
@@ -94,27 +112,27 @@ const PoliceDashboard = () => {
   };
 
     const handleVoiceInput = async (transcript) => {
-    setInputName(transcript); // Update input field with transcribed text
-    try {
-      setIsLoading(true);
-      const results = await searchName(transcript); // Fetch results based on voice input
-      setSearchResults(results);
-    } catch (error) {
-      console.error("Voice Search Error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        setInputName(transcript);
+        try {
+            setIsLoading(true);
+            const results = await searchName(transcript);
+            setSearchResults(results);
+        } catch (error) {
+            console.error("Voice Search Error:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
   const handleSuggestionClick = (suggestion) => {
     setInputName(suggestion);
     setNameSuggestions([]);
   };
 
-
   const handleAddRecord = async () => {
-    if (!newRecord.name || !newRecord.age || !newRecord.location || !newRecord.caseType) {
-      alert("Please fill out all required fields.");
+    if (!newRecord.name || !newRecord.age || !newRecord.location || !newRecord.caseType || !newRecord.gender) {
+      alert("Please fill out all required fields, including gender.");
       return;
     }
 
@@ -123,7 +141,7 @@ const PoliceDashboard = () => {
       setSearchResults((prev) => [addedRecord, ...prev]);
       alert("Record added successfully.");
       setShowAddForm(false);
-      setNewRecord({ name: "", age: "", location: "", caseType: "", confidence: "" });
+      setNewRecord({ name: "", age: "", location: "", caseType: "", gender: "", confidence: "" });
     } catch (error) {
       console.error("Error adding new record:", error);
       alert("Failed to add record. Please try again later.");
@@ -155,17 +173,17 @@ const PoliceDashboard = () => {
   const totalPages = Math.ceil(searchResults.length / RESULTS_PER_PAGE) || 1;
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-br from-pink-100 via-white to-blue-100">
       {/* Banner Section */}
-      <div className="relative w-full bg-gradient-to-r from-indigo-600 to-purple-600 h-36 flex items-center justify-between px-8 shadow-lg rounded-b-lg">
-        <img src={leftLogo} alt="Left Logo" className="h-16 w-auto" />
+      <div className="relative w-full bg-gradient-to-r from-gray-300 via-indigo-700 to-gray-300 h-36 flex items-center justify-between px-8 shadow-lg rounded-b-lg">
+        <img src={leftLogo} alt="Left Logo" className="h-24 w-auto" />
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white">MPPDS</h1>
-          <p className="text-lg text-indigo-200 mt-1">
+          <h1 className="text-4xl font-bold text-black">MPPDS</h1>
+          <p className="text-lg font-bold italic text-grey-200 mt-1">
             The Integrated Fuzzy Name Matching System
           </p>
         </div>
-        <img src={rightLogo} alt="Right Logo" className="h-16 w-auto" />
+        <img src={rightLogo} alt="Right Logo" className="h-24 w-auto" />
       </div>
 
       <div className="w-full max-w-7xl px-4 py-8">
@@ -179,7 +197,7 @@ const PoliceDashboard = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center hover:bg-indigo-50"
+                className="flex items-center hover:bg-indigo-500"
               >
                 <Filter className="mr-2 h-4 w-4" />
                 Filters
@@ -222,6 +240,21 @@ const PoliceDashboard = () => {
                     ))}
                   </select>
                 </div>
+                 {/* New Gender Filter */}
+                <div>
+                  <label className="font-medium text-indigo-800">Gender:</label>
+                  <select
+                    value={activeFilters.gender}
+                    onChange={(e) => handleFilterChange("gender", e.target.value)}
+                    className="ml-2 px-3 py-2 border rounded"
+                  >
+                    {filterOptions.genders.map((option, idx) => (
+                      <option key={idx} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
 
@@ -242,7 +275,7 @@ const PoliceDashboard = () => {
               </Button>
               <VoiceSearchButton onVoiceInput={handleVoiceInput} />
             </div>
-               {/* Suggestions List */}
+            {/* Suggestions List */}
             {inputName && (
               <ul className="bg-white shadow-lg mt-2 rounded-lg max-h-48 overflow-y-auto">
                 {isSuggestionsLoading ? (
@@ -284,6 +317,7 @@ const PoliceDashboard = () => {
                 <Input
                   placeholder="Age"
                   value={newRecord.age}
+                   type="number"
                   onChange={(e) => setNewRecord({ ...newRecord, age: e.target.value })}
                 />
                 <Input
@@ -303,11 +337,24 @@ const PoliceDashboard = () => {
                     </option>
                   ))}
                 </select>
-                <Input
+                 {/* New Gender Select */}
+                 <select
+                  value={newRecord.gender}
+                  onChange={(e) => setNewRecord({ ...newRecord, gender: e.target.value })}
+                  className="px-3 py-2 border rounded"
+                >
+                  <option value="">Select Gender</option>
+                  {filterOptions.addFormGenders.map((option, idx) => (
+                    <option key={idx} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {/*<Input
                   placeholder="Confidence Score (Optional)"
                   value={newRecord.confidence}
                   onChange={(e) => setNewRecord({ ...newRecord, confidence: e.target.value })}
-                />
+                />*/}
               </div>
               <Button onClick={handleAddRecord} className="bg-green-600 text-white mt-4">
                 Add Record
@@ -327,6 +374,7 @@ const PoliceDashboard = () => {
                     <th className="px-4 py-2 text-sm font-semibold text-gray-800">Age</th>
                     <th className="px-4 py-2 text-sm font-semibold text-gray-800">Location</th>
                     <th className="px-4 py-2 text-sm font-semibold text-gray-800">Case Type</th>
+                    <th className="px-4 py-2 text-sm font-semibold text-gray-800">Gender</th>
                     <th className="px-4 py-2 text-sm font-semibold text-gray-800">Confidence Score</th>
                     <th className="px-4 py-2 text-sm font-semibold text-gray-800">Action</th>
                   </tr>
@@ -338,6 +386,7 @@ const PoliceDashboard = () => {
                       <td className="px-4 py-2">{record.age}</td>
                       <td className="px-4 py-2">{record.location}</td>
                       <td className="px-4 py-2">{record.caseType}</td>
+                         <td className="px-4 py-2">{record.gender}</td>
                       <td className="px-4 py-2">
                         {record.confidence !== undefined && record.confidence !== null
                           ? record.confidence.toFixed(2)

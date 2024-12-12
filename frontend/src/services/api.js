@@ -2,7 +2,6 @@ import axios from "axios";
 
 const BASE_URL = "http://localhost:5000";
 
-// Function to search for a name and handle API request
 export const searchName = async (name) => {
   try {
     const response = await axios.post(`${BASE_URL}/search`, { name });
@@ -10,10 +9,10 @@ export const searchName = async (name) => {
     return response.data.results || [];
   } catch (error) {
     handleApiError(error, "fetching data");
+    return [];
   }
 };
 
-// Function to suggest names
 export const suggestName = async (name) => {
   try {
     const response = await axios.get(`${BASE_URL}/suggest`, {
@@ -26,46 +25,32 @@ export const suggestName = async (name) => {
     return [];
   } catch (error) {
     handleApiError(error, "fetching suggestions");
+    return [];
   }
 };
 
-// Function to add no match data to the backend
-export const addNoMatchData = async (data) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/add-no-match`, data);
-    console.log("Add No Match Data API Response:", response);
-    return response.data; // Return the response data to confirm successful submission
-  } catch (error) {
-    handleApiError(error, "adding no match data");
-  }
-};
-
-// Function to add a new record
 export const addNewRecord = async (data) => {
   try {
     const response = await axios.post(`${BASE_URL}/add-record`, data);
     console.log("Add Record API Response:", response);
-    return response.data;
+    if (response.status === 201 && response.data.record) {
+      return response.data.record;
+    }
+    throw new Error(response.data.error || "Failed to add the record.");
   } catch (error) {
     handleApiError(error, "adding a new record");
+    throw error;
   }
 };
 
-// Utility function to handle API errors
 const handleApiError = (error, action) => {
-  if (error.response) {
-    console.error(`API Response Error while ${action}:`, error.response);
-    console.error("Error Data:", error.response.data);
-    console.error("Error Status:", error.response.status);
-    console.error("Error Headers:", error.response.headers);
-  } else if (error.request) {
-    console.error(`API Request Error while ${action}:`, error.request);
+  console.error(`Error during ${action}:`, error);
+  if (error.response?.data?.error) {
+    alert(error.response.data.error);
   } else {
-    console.error(`Error while ${action}:`, error.message);
+    alert(`Error occurred during ${action}. Please try again later.`);
   }
-  throw new Error(error.response?.data?.message || `An error occurred while ${action}.`);
 };
-
 
 
 
