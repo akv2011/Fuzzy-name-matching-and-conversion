@@ -15,6 +15,7 @@ CORS(app)
 
 # Setup database connection and SQLAlchemy engine
 DATABASE_URL = "postgresql://postgres:hari%402004@localhost:5432/Names"
+# DATABASE_URL = "postgresql://postgres:TLAIlYegThVQJvyeLdoDXQKFgbqZFuBD@junction.proxy.rlwy.net:31655/railway" 
 engine = create_engine(DATABASE_URL)
 
 # Create a session factory
@@ -72,10 +73,12 @@ def get_phonetic_code(name):
 
 def get_suggestions(input_text, dataframe, limit=10):
     input_text = input_text.strip().lower()
-    translated_text = translate_input(input_text).lower()  # Translate input
-    
-    input_phonetic = get_phonetic_code(input_text)  # Get phonetic code
+    translated_text = translate_input(input_text).lower() if input_text else ""
+    input_phonetic = get_phonetic_code(input_text)
     suggestions = []
+
+    matching_names = []
+    other_names = []
 
     for _, row in dataframe.iterrows():
         name = row['names'].lower()
@@ -83,31 +86,115 @@ def get_suggestions(input_text, dataframe, limit=10):
         
         partial_ratio_score = max(
             fuzz.partial_ratio(input_text, name),
-            fuzz.partial_ratio(translated_text, name)
+            fuzz.partial_ratio(translated_text, name) if translated_text else 0
         )
-
-        # Calculate a prefix score. Give priority to first three letters
+        
         prefix_score = 0
-        if name.startswith(input_text) or name.startswith(translated_text):
-            prefix_score = 100  # Max score if name starts with input
-        elif name[:3] == input_text[:3] or name[:3] == translated_text[:3]:
-            prefix_score = 50 # Moderate score if first 3 letters match
+        match_len = 0
+        if name.startswith(input_text) or (translated_text and name.startswith(translated_text)):
+             prefix_score = 100
+             match_len = len(input_text) if name.startswith(input_text) else len(translated_text) if translated_text else 0
+        elif  input_text and (name.startswith(input_text[:1]) or (translated_text and name.startswith(translated_text[:1]))):
+           match_len = 1
+           if name.startswith(input_text[:2]) or (translated_text and name.startswith(translated_text[:2])):
+                match_len=2
+                if name.startswith(input_text[:3]) or (translated_text and name.startswith(translated_text[:3])):
+                     match_len=3
+           prefix_score = 50 + match_len * 10  
         
-        total_score = partial_ratio_score + prefix_score
         
+        length_penalty = 0 if match_len == 0 else (1 - (match_len / len(name))) * 25
 
-        if partial_ratio_score > 60 or (input_phonetic and name_phonetic and input_phonetic == name_phonetic):
-            suggestions.append({
+        total_score = partial_ratio_score + prefix_score - length_penalty
+
+        suggestion = {
                 'name': row['names'],
                 'age': row.get('age', 'N/A'),
                 'location': row.get('location', 'N/A'),
-                 'score': total_score
+                'score': total_score
+            }
+
+        if name.startswith(input_text) or (translated_text and name.startswith(translated_text)):
+             matching_names.append(suggestion)
+        else:
+           other_names.append(suggestion)
+    
+    if matching_names:
+      if len(matching_names) > 1 and input_text and len(input_text) > 1:
+        match_char = input_text[1]
+        matching_with_char = []
+        matching_without_char = []
+        for item in matching_names:
+           if len(item['name']) > 1 and item['name'].lower()[1] == match_char:
+              matching_with_char.append(item)
+           else:
+              matching_without_char.append(item)
+        
+        if matching_with_char:
+            sorted_matching_names = sorted(matching_with_char, key=lambda x: x['score'], reverse = True)
+            sorted_matching_names_without_char = sorted(matching_without_char,key=lambda x: x['name'])
+            sorted_matching_names = sorted_matching_names + sorted_matching_names_without_char
+        
+        else:
+           sorted_matching_names = sorted(matching_names,key=lambda x: x['name'])
+           
+      else:
+         sorted_matching_names = sorted(matching_names, key=lambda x: x['score'], reverse = True)
+    else:
+        sorted_matching_names = []
+      
+    sorted_other_names = sorted(other_names, key=lambda x: x['score'], reverse=True)
+    
+    suggestions = sorted_matching_names + sorted_other_names
+    
+    return [sugg for sugg in suggestions[:limit]]
+
+def search_name(input_name, dataframe):
+    input_name = input_name.strip().lower()
+    translated_name = translate_input(input_name).lower() if input_name else "" # Set to "" if input_name is empty
+    input_phonetic = get_phonetic_code(input_name)
+    results = []
+
+    for _, row in dataframe.iterrows():
+        name = row['names'].lower()
+        name_phonetic = get_phonetic_code(name)
+        
+        partial_ratio_score = max(
+            fuzz.partial_ratio(input_name, name),
+            fuzz.partial_ratio(translated_name, name) if translated_name else 0 # only calculate if translated_name is present
+        )
+        
+        prefix_score = 0
+        match_len = 0
+        if name.startswith(input_name) or (translated_name and name.startswith(translated_name)):
+             prefix_score = 100
+             match_len = len(input_name) if name.startswith(input_name) else len(translated_name) if translated_name else 0
+        elif  input_name and (name.startswith(input_name[:1]) or (translated_name and name.startswith(translated_name[:1]))): # if names starts with same first char
+           match_len = 1
+           if name.startswith(input_name[:2]) or (translated_name and name.startswith(translated_name[:2])): # if names starts with same 2 char
+                match_len=2
+                if name.startswith(input_name[:3]) or (translated_name and name.startswith(translated_name[:3])): # if names starts with same 3 char
+                     match_len=3
+           prefix_score = 50 + match_len * 10  
+        
+        # Calculate length penalty: shorter match gets less penalty
+        length_penalty = 0 if match_len == 0 else (1 - (match_len / len(name))) * 25
+
+        total_score = partial_ratio_score + prefix_score - length_penalty
+
+
+        if total_score > 60 or (input_phonetic and name_phonetic and input_phonetic == name_phonetic):
+            results.append({
+                'name': row['names'],
+                'age': row.get('age', 'N/A'),
+                'casetype': row.get('casetype', 'N/A'),
+                'casefir': row.get('casefir', 'N/A'),
+                'location': row.get('location', 'N/A'),
+                'confidence': total_score,
             })
 
-    # Sort suggestions by score
-    suggestions = sorted(suggestions, key=lambda x: x['score'], reverse=True)
-    
-    return [sugg for sugg in suggestions[:limit] ]
+    results.sort(key=lambda x: x['confidence'], reverse=True)
+    return results
 
 @app.route('/suggest', methods=['GET'])
 def suggest():
@@ -124,44 +211,7 @@ def suggest():
         print(f"Error occurred during suggestion generation: {e}")
         return jsonify({"error": str(e)}), 500
 
-def search_name(input_name, dataframe):
-    input_name = input_name.strip().lower()
-    translated_name = translate_input(input_name).lower()  # Translate input
-    input_phonetic = get_phonetic_code(input_name)  # Get phonetic code
 
-    results = []
-
-    for _, row in dataframe.iterrows():
-        name = row['names'].lower()
-        name_phonetic = get_phonetic_code(name)
-        
-        partial_ratio_score = max(
-            fuzz.partial_ratio(input_name, name),
-            fuzz.partial_ratio(translated_name, name)
-        )
-        
-        # Calculate a prefix score
-        prefix_score = 0
-        if name.startswith(input_name) or name.startswith(translated_name):
-            prefix_score = 100  # Max score if name starts with input
-        elif name[:3] == input_name[:3] or name[:3] == translated_name[:3]:
-            prefix_score = 50 # Moderate score if first 3 letters match
-            
-        total_score = partial_ratio_score + prefix_score
-
-
-        if total_score > 60 or (input_phonetic and name_phonetic and input_phonetic == name_phonetic):
-            results.append({
-                'name': row['names'],
-                'age': row.get('age', 'N/A'),
-                'casetype': row.get('casetype', 'N/A'),
-                'casefir': row.get('casefir', 'N/A'),
-                'location': row.get('location', 'N/A'),
-                'confidence': total_score,
-            })
-
-    results.sort(key=lambda x: x['confidence'], reverse=True)
-    return results
 
 @app.route('/search', methods=['POST'])
 def search():
@@ -185,12 +235,12 @@ def search():
 def add_record():
      try:
         record_data = request.json
-        name = record_data.get('name', '').strip()
+        name = record_data.get('names', '').strip()
         age = record_data.get('age', '').strip()
         location = record_data.get('location', '').strip()
-        caseType = record_data.get('caseType', '').strip()
-        gender = record_data.get('gender', '').strip()
-        caseFIR = record_data.get('caseFIR', '').strip()
+        caseType = record_data.get('casetype', '').strip()
+        gender = record_data.get('voter_gender', '').strip()
+        caseFIR = record_data.get('casefir', '').strip()
 
         if not name or not age or not location or not caseType or not gender:
             return jsonify({"error": "All fields (name, age, location, caseType, gender) are required."}), 400

@@ -33,3 +33,13 @@ body {
 .animate-blink {
   animation: blink 1s infinite;
 }
+
+@keyframes scroll {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Add this to style the element with the animation: */
+.scrolling-keywords { /* Or whatever class name you're using */
+  animation: scroll 600ms linear infinite;  /* Increased to 30 seconds */
+}

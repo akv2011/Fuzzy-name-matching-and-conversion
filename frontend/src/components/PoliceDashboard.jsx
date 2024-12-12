@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { searchName, suggestName, addNewRecord } from "../services/api";
 import { Card, CardHeader } from "./ui/Card";
 import { Input } from "./ui/Input";
@@ -20,7 +20,7 @@ const PoliceDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeFilters, setActiveFilters] = useState({
     location: "All Stations",
-    caseType: "All Types",
+    casetype: "All Types",
     gender: "All Genders",
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -137,7 +137,7 @@ const PoliceDashboard = () => {
     }
 
     try {
-      const addedRecord = await addNewRecord(newRecord);
+      const addedRecord = await addNewRecord(newRecord);  
       setSearchResults((prev) => [addedRecord, ...prev]);
       alert("Record added successfully.");
       setShowAddForm(false);
@@ -165,12 +165,45 @@ const PoliceDashboard = () => {
     }));
   };
 
-  const paginatedResults = searchResults.slice(
+  const paginatedResults = searchResults.slice( 
     (currentPage - 1) * RESULTS_PER_PAGE,
     currentPage * RESULTS_PER_PAGE
   );
 
   const totalPages = Math.ceil(searchResults.length / RESULTS_PER_PAGE) || 1;
+
+  const featureBarRef = useRef(null);
+  const [isScrolling, setIsScrolling] = useState(true);
+  const [keywords, setKeywords] = useState([
+    "Fuzzy Matching system", "Transliteration Standardization", "Phonetics Matching", "Voice Search", "Semantics"
+  ]);
+
+
+  useEffect(() => {
+    const bar = featureBarRef.current;
+
+    if (bar) {
+      let animationFrameId;
+
+      const animateScroll = () => {
+        if (isScrolling) {
+          bar.scrollLeft += 0.5; // Adjust speed
+
+          if (bar.scrollLeft >= bar.scrollWidth - bar.offsetWidth) {
+            bar.scrollLeft = 0;
+          }
+        }
+        animationFrameId = requestAnimationFrame(animateScroll);
+      };
+
+      animateScroll();
+
+      return () => cancelAnimationFrame(animationFrameId);
+    }
+  }, [isScrolling]);
+
+  const handleMouseEnter = () => setIsScrolling(false);
+  const handleMouseLeave = () => setIsScrolling(true);
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center bg-gradient-to-br from-pink-100 via-white to-blue-100">
@@ -185,7 +218,25 @@ const PoliceDashboard = () => {
         </div>
         <img src={rightLogo} alt="Right Logo" className="h-24 w-auto" />
       </div>
-
+      <div className="w-full bg-white p-4 shadow-md mt-4 overflow-x-hidden">
+        <div
+          className="whitespace-nowrap" // Required to prevent wrapping
+          ref={featureBarRef}
+          style={{
+            fontSize: "1.2rem",
+            fontWeight: "500",
+            animation: "scroll 15s linear infinite", // Adjust duration as needed
+            display: "inline-block", // Treat the inner div as a block element for animation
+          }}
+        >
+          {keywords.map((keyword, index) => (
+            <span key={index} className="mr-4 text-gray-700">
+              {keyword}
+            </span>
+          ))}
+        </div>
+      </div>
+      
       <div className="w-full max-w-7xl px-4 py-8">
         {/* Search Section */}
         <Card className="w-full shadow-xl border border-indigo-100">
@@ -257,7 +308,6 @@ const PoliceDashboard = () => {
                 </div>
               </div>
             )}
-
             <div className="flex gap-3 w-full">
               <Input
                 placeholder="Enter name to search..."
@@ -385,8 +435,8 @@ const PoliceDashboard = () => {
                       <td className="px-4 py-2">{record.name}</td>
                       <td className="px-4 py-2">{record.age}</td>
                       <td className="px-4 py-2">{record.location}</td>
-                      <td className="px-4 py-2">{record.caseType}</td>
-                         <td className="px-4 py-2">{record.gender}</td>
+                      <td className="px-4 py-2">{record.casetype}</td>
+                         <td className="px-4 py-2">{record.voter_gender}</td>
                       <td className="px-4 py-2">
                         {record.confidence !== undefined && record.confidence !== null
                           ? record.confidence.toFixed(2)
@@ -439,3 +489,5 @@ const PoliceDashboard = () => {
 };
 
 export default PoliceDashboard;
+
+

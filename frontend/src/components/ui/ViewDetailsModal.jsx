@@ -23,7 +23,7 @@ const ViewDetailsModal = ({ isOpen, onClose, record }) => {
         </div>
       </div>
     </div>
-  );
+  );  
 };
 
 export default ViewDetailsModal;
