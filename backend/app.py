@@ -235,12 +235,12 @@ def search():
 def add_record():
      try:
         record_data = request.json
-        name = record_data.get('names', '').strip()
+        name = record_data.get('name', '').strip()
         age = record_data.get('age', '').strip()
         location = record_data.get('location', '').strip()
-        caseType = record_data.get('casetype', '').strip()
-        gender = record_data.get('voter_gender', '').strip()
-        caseFIR = record_data.get('casefir', '').strip()
+        caseType = record_data.get('caseType', '').strip()
+        gender = record_data.get('gender', '').strip()
+        caseFIR = record_data.get('caseFIR', '').strip()
 
         if not name or not age or not location or not caseType or not gender:
             return jsonify({"error": "All fields (name, age, location, caseType, gender) are required."}), 400

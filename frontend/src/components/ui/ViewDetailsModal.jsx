@@ -12,8 +12,8 @@ const ViewDetailsModal = ({ isOpen, onClose, record }) => {
           <p><strong>Name:</strong> {record.name}</p>
           <p><strong>Gender:</strong> {record.voter_gender === 1 ? "Male" : "Female"}</p>
           <p><strong>Age:</strong> {record.age}</p>
-          <p><strong>Case Type:</strong> {record.caseType}</p>
-          <p><strong>Case FIR:</strong> {record.caseFIR}</p>
+          <p><strong>Case Type:</strong> {record.casetype}</p>
+          <p><strong>Case FIR:</strong> {record.casefir}</p>
           <p><strong>Location:</strong> {record.location}</p>
         </div>
         <div className="mt-4 flex justify-end">
